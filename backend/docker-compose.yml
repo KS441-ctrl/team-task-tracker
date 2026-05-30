@@ -1,0 +1,45 @@
+version: '3.9'
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: team-task-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: team_task_tracker
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql_data:/var/lib/mysql
+  redis:
+    image: redis:7.2-alpine
+    container_name: team-task-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: team-task-backend
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - redis
+    ports:
+      - '4000:4000'
+    environment:
+      - PORT=4000
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=rootpassword
+      - MYSQL_DATABASE=team_task_tracker
+      - JWT_SECRET=supersecretkey
+      - JWT_REFRESH_SECRET=superrefreshsecret
+      - ACCESS_TOKEN_EXPIRES_IN=15m
+      - REFRESH_TOKEN_EXPIRES_IN=7d
+      - REDIS_URL=redis://redis:6379
+volumes:
+  mysql_data:

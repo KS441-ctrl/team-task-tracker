@@ -1,0 +1,63 @@
+USE team_task_tracker;
+
+CREATE TABLE IF NOT EXISTS organizations (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  email VARCHAR(256) NOT NULL UNIQUE,
+  password VARCHAR(256) NOT NULL,
+  role ENUM('ADMIN','MANAGER','MEMBER') NOT NULL DEFAULT 'MEMBER',
+  organization_id VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS projects (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  description TEXT,
+  organization_id VARCHAR(36) NOT NULL,
+  created_by VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id VARCHAR(36) PRIMARY KEY,
+  title VARCHAR(256) NOT NULL,
+  description TEXT,
+  priority ENUM('LOW','MEDIUM','HIGH') NOT NULL DEFAULT 'LOW',
+  status ENUM('TODO','IN_PROGRESS','IN_REVIEW','DONE','BLOCKED') NOT NULL DEFAULT 'TODO',
+  assignee_id VARCHAR(36),
+  project_id VARCHAR(36),
+  organization_id VARCHAR(36) NOT NULL,
+  due_date DATETIME,
+  created_by VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
+  FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_tasks_status ON tasks(status);
+CREATE INDEX idx_tasks_assignee ON tasks(assignee_id);
+CREATE INDEX idx_tasks_due_date ON tasks(due_date);
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  id VARCHAR(36) PRIMARY KEY,
+  token_hash VARCHAR(256) NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  revoked BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
